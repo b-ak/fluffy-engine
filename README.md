@@ -159,7 +159,7 @@ sudo umount /media/b-ak/*
 
 Or
 
-Use the script [RPi 3 kernel builder](../sidekick/scripts/rpi3-kernel-builder.sh)
+Use the script [RPi 3 kernel builder](https://gist.github.com/b-ak/ecf6640241e12bd31bcc7e433fa60d40)
 
 ## 3. Setting up a Git repository
 
