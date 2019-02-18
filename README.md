@@ -103,6 +103,7 @@ Table of Contents
   print '%s/%s/%s' % (now.year, now.month, now.day)
   print "Let's not go to %s. 'Tis a silly %s." % (string_1, string_2)
   print 'This isn\'t flying, this is falling with style!'
+  print("{} is {} and {} is {}.".format(philo.name, philo.age, mikey.name, mikey.age))
 ```
 ## Printing a List
 ```python
