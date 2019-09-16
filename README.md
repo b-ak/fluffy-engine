@@ -104,6 +104,8 @@ Table of Contents
   print "Let's not go to %s. 'Tis a silly %s." % (string_1, string_2)
   print 'This isn\'t flying, this is falling with style!'
   print("{} is {} and {} is {}.".format(philo.name, philo.age, mikey.name, mikey.age))
+  print(The {q} {b} {f}'.format(f='fox', b='brown', q='quick'))
+  print(The {q} {f} {f}'.format(f='fox', b='brown', q='quick'))
 ```
 ## Printing a List
 ```python
