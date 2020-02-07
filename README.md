@@ -9,9 +9,9 @@
 
 	How-To
 	------
-	 > Copy the script to your source code directory and execute it
-	 > Run `source ~/.bashrc`
-	 > Try browsing source code
+	 1. Copy the script to your source code directory and execute it   
+	 2. Run `source ~/.bashrc`   
+	 3. Try browsing source code    
 
 2. kernel-cleanup.sh
 	Remove old installed kernels on ubuntu
