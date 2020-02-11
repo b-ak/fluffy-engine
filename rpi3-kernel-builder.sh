@@ -59,7 +59,10 @@ function setup_tools(){
 	if [ $(echo $PATH | grep -c "gcc-linaro-arm-linux-gnueabihf-raspbian-x64") -eq 0 ];
 	then
 		echo "Setting up toolchain"
+		cd ~
 		git clone https://github.com/raspberrypi/tools.git
+		echo "PATH=$PATH:~/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/" >> ~/.bashrc
+		echo "PATH=$PATH:~/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/" >> ~/.zshrc
 	else
 		echo "-------------------------"
 		echo "Toolchain already present"
