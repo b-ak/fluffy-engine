@@ -1,0 +1,36 @@
+------------------
+1. Install bash-it
+------------------
+git clone --depth=1 https://github.com/Bash-it/bash-it.git ~/.bash_it
+~/.bash_it/install.sh
+
+------------------------------------
+2. Add following lines in ~/.bashrc
+------------------------------------
+# auto-complete hack like zsh
+bind 'set show-all-if-ambiguous on'
+bind 'TAB:menu-complete'
+
+export BASH_IT_THEME='powerline-plain'
+export BASH_IT_THEME='barbuk'
+
+export SCM_CHECK=false
+export SCM_GIT_SHOW_MINIMAL_INFO=true
+
+-----------------------------
+3. Copy inputrc to ~/.inputrc
+-----------------------------
+cp inputrc ~/.inputrc
+bind -f ~/.inputrc
+
+-----------------
+4. Enable Aliases
+-----------------
+bash-it enable alias git curl apt 
+cp custom.aliases.bash ~/.bash_it/aliases/
+
+-----------------
+5. Enable Plugins
+-----------------
+bash-it enable plugin fzf git ssh man extract
+
