@@ -68,13 +68,13 @@ void displayTime(int hours, int minutes) {
   m2 = minutes % 10;
   m1 = ((minutes % 100) - m1) / 10;
   
-//  if (h1==0) {
-//    clearDisplay(); // diplay first hour digit only if it is greater than 0
-//  }
-//  else
-//  {
+  if (h1==0) {
+    clearDisplay(); // diplay first hour digit only if it is greater than 0
+  }
+  else
+  {
     displayDigit(d1_pin, h1);
-//  }
+  }
   delay(mux_delay);
   displayDigit(d2_pin, h2);
   delay(mux_delay);
@@ -150,6 +150,8 @@ void setup() {
   }
   // set the clock to current system time - uncomment when need to set time then comment again
   //rtc.adjust(DateTime(__DATE__, __TIME__));
+  // Year, Month, Date, Hour, Minute, Second
+  rtc.adjust(DateTime(2020, 8, 6, 23, 53, 30));
 }
 
 void loop() {
