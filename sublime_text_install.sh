@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function usage(){
-	echo "Example Usage: $0 bks6kor"
+	echo "Example Usage: $0 abcd"
 	exit 1
 }
 
