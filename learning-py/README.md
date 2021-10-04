@@ -1,4 +1,4 @@
-# learning-python
+# Learning python
 A combination of code snippets and syntax from MOOCs and other online resources
 
 Table of Contents
