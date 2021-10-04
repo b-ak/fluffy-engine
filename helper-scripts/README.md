@@ -1,4 +1,4 @@
-# gists
+# Scripts and Stuff
 [Link to all of my gists](https://gist.github.com/b-ak)
 
 ### What the scripts do
