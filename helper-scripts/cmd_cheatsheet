@@ -450,6 +450,9 @@ tar
 > Extract the file in the specified directory (ex: /usr/local)
        tar -C /usr/local -xzf go1.5.1.linux-amd64.tar.gz
 
+> Extract the file into a specified directory 
+	tar -xvzf archive.tar.gx -C archive_dir
+
 > Extract Linux kernel
        tar -Jxvf linux-4.2.3.tar.xz
 
