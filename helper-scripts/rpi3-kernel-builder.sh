@@ -100,19 +100,19 @@ function build_kernel(){
 	echo "--------------------------------------------------------------------"
 	echo "Do you wish overwrite existing config with the default one ?"
 	echo "--------------------------------------------------------------------"
-	date ; read -t 3 -p "Hit ENTER to overwrite config or wait 3 seconds" -n 1 answer ; date
-	if [ $? == 0 ]; then
-		echo "Using bcm2709_defconfig as defualt configuration"
-	else
-		echo "Continuing with existing configuration"
-	fi
+	# date ; read -t 3 -p "Hit ENTER to overwrite config or wait 3 seconds" -n 1 answer ; date
+	# if [ $? == 0 ]; then
+	# 	echo "Using bcm2709_defconfig as defualt configuration"
+	# else
+	# 	echo "Continuing with existing configuration"
+	# fi
 
-	# select yn in "Yes" "No"; do
-	# 	case $yn in
-	# 		Yes ) make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- bcm2709_defconfig; break;;
-	# 		No  ) break;;
-	# 	esac
-	# done
+	select yn in "Yes" "No"; do
+		case $yn in
+			Yes ) make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- bcm2709_defconfig; break;;
+			No  ) break;;
+		esac
+	done
 	echo "--------------------------------------------------------------------"
 	echo "Do you wish to customize the kernel ?"
 	echo "--------------------------------------------------------------------"
