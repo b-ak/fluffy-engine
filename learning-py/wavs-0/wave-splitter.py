@@ -7,9 +7,9 @@ import wave
 import numpy as np
 import matplotlib.pyplot as plt
 
-chNames = ["Mic-1", "Mic-2", "Aux-L", "Aux-R", "ANC-1", "ANC-2", "ANC-3", "ANC-4", "SXM-L", "SXM-R"]
+chNames = ["Mic-1", "Mic-2", "Aux-L", "Aux-R", "ANC-1", "ANC-2", "ANC-3", "ANC-4"]
 
-f = wave.open('./new-files/cap_8ch_v2.wav')
+f = wave.open('../cap_8ch_v2.wav')
 sampleRate = f.getframerate()
 totalFrames = f.getnframes()
 channels = f.getnchannels()
@@ -55,7 +55,7 @@ print("Time Seq %s" %len(timeSeq))
 print("DataNorm[0] %s" %len(dataNorm[0]))
 
 # Get the generated wave file
-g = wave.open('./new-files/gen.wav')
+g = wave.open('../gen.wav')
 gSR = g.getframerate()
 gFrames = g.getnframes()
 gChannels = g.getnchannels()
