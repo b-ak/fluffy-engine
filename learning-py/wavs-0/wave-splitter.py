@@ -7,7 +7,7 @@ import wave
 import numpy as np
 import matplotlib.pyplot as plt
 
-chNames = ["ch-1", "ch-2", "ch-3", "ch-4", "ch-5", "ch-6", "ch-7", "ch-8", "ch-9", "ch-10"]
+chNames = ["Mic-1", "Mic-2", "Aux-L", "Aux-R", "ANC-1", "ANC-2", "ANC-3", "ANC-4", "SXM-L", "SXM-R"]
 
 f = wave.open('./new-files/cap_8ch_v2.wav')
 sampleRate = f.getframerate()
@@ -55,7 +55,7 @@ print("Time Seq %s" %len(timeSeq))
 print("DataNorm[0] %s" %len(dataNorm[0]))
 
 # Get the generated wave file
-g = wave.open('gen.wav')
+g = wave.open('./new-files/gen.wav')
 gSR = g.getframerate()
 gFrames = g.getnframes()
 gChannels = g.getnchannels()
@@ -85,9 +85,9 @@ for i in range(channels):
         l1, l2 = axs[i].plot(timeSeq, dataNorm[i], timeSeq, gDataNorm[i%2])
 
     #axs[i].plot(timeSeq, dataNorm[i], 'o-')
-    axs[i].set_ylabel(chNames[i])
-    # axs[i].set_xlim([0.2, 0.3])
-    # axs[i].set_ylim([-0.8, 0.8])
+    axs[i].set_ylabel(chNames[i], rotation='horizontal', ha='right', va="center")
+    axs[i].set_xlim([0.25, 0.3])
+    axs[i].set_ylim([-1, 1])
 
 
 fig.legend((l1, l2), ("Captured", 'Generated'), loc='upper right', shadow=True)
@@ -98,4 +98,3 @@ axs[channels-1].set_xlabel('Time (s)')
 # plt.axis([0.2, 0.4, -1, 1])
 
 plt.show()
-)
