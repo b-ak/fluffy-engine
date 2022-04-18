@@ -13,7 +13,9 @@ bind 'TAB:menu-complete'
 
 export BASH_IT_THEME='powerline-plain'
 export BASH_IT_THEME='barbuk'
+export BASH_IT_THEME='easy'
 
+# Don't do this if you need git repo information
 export SCM_CHECK=false
 export SCM_GIT_SHOW_MINIMAL_INFO=true
 
@@ -26,11 +28,11 @@ bind -f ~/.inputrc
 -----------------
 4. Enable Aliases
 -----------------
-bash-it enable alias git curl apt 
+bash-it enable alias git curl apt
 cp custom.aliases.bash ~/.bash_it/aliases/
 
 -----------------
 5. Enable Plugins
 -----------------
-bash-it enable plugin fzf git ssh man extract
+bash-it enable plugin git ssh extract
 
