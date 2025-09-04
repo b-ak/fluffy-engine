@@ -149,9 +149,14 @@ void setup() {
     while (1);
   }
   // set the clock to current system time - uncomment when need to set time then comment again
-  //rtc.adjust(DateTime(__DATE__, __TIME__));
-  // Year, Month, Date, Hour, Minute, Second
-  rtc.adjust(DateTime(2020, 8, 6, 23, 53, 30));
+  // rtc.adjust(DateTime(__DATE__, __TIME__));
+
+  // Or use the below function to set time manually.
+  // Format: Year, Month, Date, Hour, Minute, Second 
+  // How to Use:
+  // 1. Uncomment when need to set time and flash 
+  // 2. Then comment again and flash again (otherwise at every powerloss time will get reset to the below configured value)
+  rtc.adjust(DateTime(2025, 9, 3, 07, 44, 00));
 }
 
 void loop() {
