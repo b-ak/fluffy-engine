@@ -267,7 +267,7 @@
     }
     if (err && err.message === 'NO_REPLY') {
       return ["The clock didn't answer.",
-              'Check that it is running the BLE sketch and the module TXD goes to D8.'];
+              'Check it runs the BLE sketch, module TXD goes to D8 and D10 (via the divider) to RXD. If only the reply line is broken, the time may still have been set.'];
     }
     if (err && err.name === 'NetworkError') {
       return ["Couldn't connect to the clock.",
