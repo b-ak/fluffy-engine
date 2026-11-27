@@ -1,9 +1,9 @@
-# Publishes the CLK Bluetooth sync page to GitHub Pages:
-#   https://b-ak.github.io/fluffy-engine/clk/
-# Web Bluetooth only works on https pages, which Pages provides.
+# The CLK sync page moved to https://b-ak.github.io/dusty-clock/ (repo b-ak/dusty-clock).
+# This keeps the old address, https://b-ak.github.io/fluffy-engine/clk/, working by
+# publishing a redirect page there.
 #
 # One-time setup: Settings > Pages > Build and deployment > Source: "GitHub Actions".
-name: Deploy CLK sync page
+name: Deploy CLK sync page redirect
 
 on:
   push:
