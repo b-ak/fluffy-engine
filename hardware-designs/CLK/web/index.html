@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0b0b0c">
+<title>CLK Sync</title>
+<style>
+  :root {
+    --bg: #0b0b0c;
+    --panel: #151517;
+    --line: #26262a;
+    --text: #e8e6e3;
+    --muted: #8d8a86;
+    --led: #ff3b2f;
+    --led-dim: #3a1412;
+    --ok: #5bd17f;
+    --err: #ff8a7a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh; display: flex; justify-content: center;
+    padding: max(24px, env(safe-area-inset-top)) 20px 32px;
+  }
+  main { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 20px; }
+  header h1 { font-size: 15px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; margin: 0; color: var(--muted); }
+
+  .face {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 26px 18px 18px; text-align: center;
+  }
+  .digits {
+    font-family: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums; font-weight: 600;
+    font-size: clamp(56px, 22vw, 92px); line-height: 1; letter-spacing: .02em;
+    color: var(--led); text-shadow: 0 0 18px rgba(255, 59, 47, .45);
+  }
+  .digits .sec { font-size: .38em; color: var(--led); opacity: .75; margin-left: .15em; vertical-align: .9em; }
+  .colon { animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { color: var(--led-dim); text-shadow: none; } }
+  @media (prefers-reduced-motion: reduce) { .colon { animation: none; } }
+  .date { margin-top: 10px; color: var(--muted); font-size: 14px; }
+  .caption { margin-top: 14px; font-size: 12px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+
+  button {
+    font: inherit; width: 100%; border-radius: 12px; padding: 16px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel); color: var(--text);
+  }
+  button.primary { background: var(--led); border-color: var(--led); color: #fff; font-weight: 600; font-size: 17px; }
+  button:disabled { opacity: .5; cursor: default; }
+  button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .actions { display: flex; flex-direction: column; gap: 10px; }
+
+  label.opt { display: flex; gap: 10px; align-items: center; font-size: 14px; color: var(--muted); }
+  label.opt input { width: 18px; height: 18px; accent-color: var(--led); }
+
+  #status {
+    min-height: 3em; padding: 14px 16px; border-radius: 12px;
+    background: var(--panel); border: 1px solid var(--line); font-size: 15px;
+  }
+  #status.ok { border-color: #234b31; color: var(--ok); }
+  #status.err { border-color: #5a2520; color: var(--err); }
+  #status small { display: block; color: var(--muted); margin-top: 4px; }
+
+  .notice { padding: 14px 16px; border-radius: 12px; border: 1px solid #5a2520; color: var(--err); font-size: 15px; }
+  footer { font-size: 13px; color: var(--muted); }
+  footer a { color: var(--text); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header><h1>CLK Sync</h1></header>
+
+  <section class="face" aria-label="Time on this phone">
+    <div class="digits" id="phoneTime" aria-live="off">--<span class="colon">:</span>--<span class="sec">--</span></div>
+    <div class="date" id="phoneDate">&nbsp;</div>
+    <div class="caption">Time on this device</div>
+  </section>
+
+  <div class="notice" id="unsupported" hidden></div>
+
+  <div class="actions">
+    <button class="primary" id="syncBtn">Sync clock to this time</button>
+    <button id="checkBtn">Check clock time</button>
+  </div>
+
+  <label class="opt"><input type="checkbox" id="showAll"> Show all Bluetooth devices (if your clock isn't listed)</label>
+
+  <div id="status" role="status" aria-live="polite">Tap Sync, then pick your clock from the list.</div>
+
+  <footer>
+    Works in Chrome on Android and desktop, and in Bluefy on iPhone.
+    Don't pair the clock in your phone's Bluetooth settings; this page connects to it directly.
+    <a href="https://github.com/b-ak/fluffy-engine/tree/main/hardware-designs/CLK">Clock design and setup</a>
+  </footer>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  // HM-10 / AT-09 / MLT-BT05 transparent UART service and characteristic
+  const SERVICE = 0xffe0;
+  const CHARACTERISTIC = 0xffe1;
+  const MAX_WRITE = 20;          // BLE 4.0 payload per write
+  const REPLY_TIMEOUT_MS = 4000;
+
+  const $ = (id) => document.getElementById(id);
+  const pad = (n, w = 2) => String(n).padStart(w, '0');
+
+  // ---- live phone clock --------------------------------------------------
+  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                  'August', 'September', 'October', 'November', 'December'];
+  function renderPhoneTime() {
+    const d = new Date();
+    $('phoneTime').innerHTML = pad(d.getHours()) + '<span class="colon">:</span>' +
+      pad(d.getMinutes()) + '<span class="sec">' + pad(d.getSeconds()) + '</span>';
+    $('phoneDate').textContent = DAYS[d.getDay()] + ', ' + d.getDate() + ' ' +
+      MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+    setTimeout(renderPhoneTime, 1000 - (Date.now() % 1000) + 5);
+  }
+  renderPhoneTime();
+
+  // ---- status ------------------------------------------------------------
+  function setStatus(text, kind = '', detail = '') {
+    const el = $('status');
+    el.className = kind;
+    el.textContent = text;
+    if (detail) {
+      const s = document.createElement('small');
+      s.textContent = detail;
+      el.appendChild(s);
+    }
+  }
+  function setBusy(busy) {
+    $('syncBtn').disabled = busy;
+    $('checkBtn').disabled = busy;
+  }
+
+  // ---- support check -----------------------------------------------------
+  if (!window.isSecureContext || !navigator.bluetooth) {
+    const n = $('unsupported');
+    n.hidden = false;
+    n.textContent = !window.isSecureContext
+      ? 'Bluetooth needs a secure (https) page. Open this page from its GitHub Pages address.'
+      : "This browser can't use Bluetooth. Use Chrome on Android or a computer, or the Bluefy browser on iPhone.";
+    document.querySelector('.actions').hidden = true;
+    document.querySelector('label.opt').hidden = true;
+    $('status').hidden = true;
+    return;
+  }
+
+  // ---- BLE link ----------------------------------------------------------
+  let device = null;
+  let characteristic = null;
+  let rxBuffer = '';
+  let lineWaiter = null;
+
+  function onNotify(event) {
+    rxBuffer += new TextDecoder().decode(event.target.value);
+    let i;
+    while ((i = rxBuffer.search(/[\r\n]/)) >= 0) {
+      const line = rxBuffer.slice(0, i).trim();
+      rxBuffer = rxBuffer.slice(i + 1);
+      if (line && lineWaiter && lineWaiter.match(line)) {
+        const w = lineWaiter;
+        lineWaiter = null;
+        clearTimeout(w.timer);
+        w.resolve(line);
+      }
+    }
+  }
+
+  // Resolve with the next reply line starting with one of the prefixes.
+  function waitForLine(prefixes) {
+    return new Promise((resolve, reject) => {
+      lineWaiter = {
+        match: (line) => prefixes.some((p) => line.startsWith(p)),
+        resolve,
+        timer: setTimeout(() => {
+          lineWaiter = null;
+          reject(new Error('NO_REPLY'));
+        }, REPLY_TIMEOUT_MS),
+      };
+    });
+  }
+
+  // Ask every time, so either clock in the house can be picked.
+  async function connect() {
+    const showAll = $('showAll').checked;
+    device = await navigator.bluetooth.requestDevice(showAll
+      ? { acceptAllDevices: true, optionalServices: [SERVICE] }
+      : {
+          // Renamed clocks (CLK-...), modules advertising the UART service,
+          // and the factory names of common HM-10 clones.
+          filters: [
+            { namePrefix: 'CLK' },
+            { services: [SERVICE] },
+            { namePrefix: 'HMSoft' },
+            { namePrefix: 'BT05' },
+            { namePrefix: 'MLT-BT05' },
+            { namePrefix: 'AT-09' },
+          ],
+          optionalServices: [SERVICE],
+        });
+    setStatus('Connecting to ' + (device.name || 'clock') + '…');
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE);
+    characteristic = await service.getCharacteristic(CHARACTERISTIC);
+    rxBuffer = '';
+    if (characteristic.properties.notify) {
+      characteristic.addEventListener('characteristicvaluechanged', onNotify);
+      await characteristic.startNotifications();
+    }
+  }
+
+  function disconnect() {
+    if (characteristic) characteristic.removeEventListener('characteristicvaluechanged', onNotify);
+    if (device && device.gatt.connected) device.gatt.disconnect();
+    characteristic = null;
+  }
+
+  async function send(text) {
+    const bytes = new TextEncoder().encode(text);
+    const p = characteristic.properties;
+    for (let i = 0; i < bytes.length; i += MAX_WRITE) {
+      const chunk = bytes.slice(i, i + MAX_WRITE);
+      if (p.writeWithoutResponse && characteristic.writeValueWithoutResponse) {
+        await characteristic.writeValueWithoutResponse(chunk);
+      } else if (characteristic.writeValueWithResponse) {
+        await characteristic.writeValueWithResponse(chunk);
+      } else {
+        await characteristic.writeValue(chunk);
+      }
+    }
+  }
+
+  const isCancel = (err) => err && err.name === 'NotFoundError' && /cancel/i.test(err.message || '');
+
+  const canReply = () => characteristic && characteristic.properties.notify;
+
+  // "YYYY-MM-DD hh:mm:ss" from the clock -> local Date
+  function parseClock(s) {
+    const m = /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(s);
+    return m ? new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]) : null;
+  }
+
+  function describeOffset(clock) {
+    // The clock reports whole seconds, so compare against whole seconds too.
+    const diff = Math.round((clock.getTime() - Math.floor(Date.now() / 1000) * 1000) / 1000);
+    if (Math.abs(diff) <= 1) return 'Matches this device (within 1 s).';
+    const abs = Math.abs(diff);
+    const amount = abs < 120 ? abs + ' s' : abs < 7200 ? Math.round(abs / 60) + ' min' : (abs / 3600).toFixed(1) + ' h';
+    return amount + (diff > 0 ? ' ahead of' : ' behind') + ' this device.';
+  }
+
+  function explain(err) {
+    if (isCancel(err)) return ['No clock selected.', ''];
+    if (err && err.name === 'NotFoundError') {
+      return ["That device doesn't look like a clock.",
+              'It has no HM-10 serial service (FFE0/FFE1). Pick the clock module instead.'];
+    }
+    if (err && err.message === 'NO_REPLY') {
+      return ["The clock didn't answer.",
+              'Check it runs the BLE sketch, module TXD goes to D8 and D10 (via the divider) to RXD. If only the reply line is broken, the time may still have been set.'];
+    }
+    if (err && err.name === 'NetworkError') {
+      return ["Couldn't connect to the clock.",
+              'Move closer, and make sure no other phone is connected to it.'];
+    }
+    return ['Something went wrong.', (err && err.message) || String(err)];
+  }
+
+  // ---- actions -----------------------------------------------------------
+  async function syncClock() {
+    setBusy(true);
+    try {
+      await connect();
+
+      // Send on a second boundary so the clock starts the new second in step.
+      const target = Math.ceil((Date.now() + 250) / 1000) * 1000;
+      setStatus('Setting the clock…');
+      await new Promise((r) => setTimeout(r, Math.max(0, target - Date.now())));
+      const t = new Date(target);
+      const cmd = 'T' + t.getFullYear() + pad(t.getMonth() + 1) + pad(t.getDate()) +
+                  pad(t.getHours()) + pad(t.getMinutes()) + pad(t.getSeconds()) + '\n';
+
+      const reply = canReply() ? waitForLine(['OK', 'ERR']) : null;
+      await send(cmd);
+
+      if (!reply) {
+        setStatus('Time sent.', 'ok', "This module doesn't send replies, so the clock couldn't confirm it.");
+      } else {
+        const line = await reply;
+        if (line.startsWith('OK')) {
+          const set = line.slice(3).trim();
+          setStatus('Clock set to ' + set + '.', 'ok', device.name ? 'On ' + device.name + '.' : '');
+        } else {
+          setStatus('The clock rejected the time.', 'err', 'Reply: ' + line);
+        }
+      }
+    } catch (err) {
+      const [msg, detail] = explain(err);
+      setStatus(msg, isCancel(err) ? '' : 'err', detail);
+    } finally {
+      disconnect();
+      setBusy(false);
+    }
+  }
+
+  async function checkClock() {
+    setBusy(true);
+    try {
+      await connect();
+      if (!canReply()) {
+        setStatus("This module doesn't send replies, so the clock time can't be read.", 'err');
+        return;
+      }
+      const reply = waitForLine(['NOW', 'ERR']);
+      await send('?\n');
+      const line = await reply;
+      const clock = parseClock(line);
+      if (line.startsWith('NOW') && clock) {
+        setStatus('Clock reads ' + line.slice(4).trim() + '.', 'ok', describeOffset(clock));
+      } else {
+        setStatus("Couldn't read the clock.", 'err', 'Reply: ' + line);
+      }
+    } catch (err) {
+      const [msg, detail] = explain(err);
+      setStatus(msg, isCancel(err) ? '' : 'err', detail);
+    } finally {
+      disconnect();
+      setBusy(false);
+    }
+  }
+
+  $('syncBtn').addEventListener('click', syncClock);
+  $('checkBtn').addEventListener('click', checkClock);
+})();
+</script>
+</body>
+</html>

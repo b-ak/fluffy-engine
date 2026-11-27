@@ -64,9 +64,9 @@ void displayDigit(int digit_pin, int number) {
 void displayTime(int hours, int minutes) {
   int h1, h2, m1, m2;
   h2 = hours % 10;
-  h1 = ((hours % 100) - h1) / 10;
+  h1 = (hours % 100) / 10;
   m2 = minutes % 10;
-  m1 = ((minutes % 100) - m1) / 10;
+  m1 = (minutes % 100) / 10;
   
   if (h1==0) {
     clearDisplay(); // diplay first hour digit only if it is greater than 0
@@ -104,9 +104,9 @@ void blinkDot(int seconds) {
 void displayDate(int days, int months) {
   int d1, d2, m1, m2;
   d2 = days % 10;
-  d1 = ((days % 100) - d1) / 10;
+  d1 = (days % 100) / 10;
   m2 = months % 10;
-  m1 = ((months % 100) - m1) / 10;
+  m1 = (months % 100) / 10;
   if (d1 == 0) {
     clearDisplay(); // diplay first hour digit only if it is greater than 0
   } else {
