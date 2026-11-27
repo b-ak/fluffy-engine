@@ -38,6 +38,55 @@ Open it, tap **Sync clock to this time**, pick the clock from the list, and the 
 
 The page works in Chrome on Android and desktop, and in the Bluefy browser on iPhone (Safari has no Web Bluetooth). Don't pair the module in the phone's Bluetooth settings; the page connects to it directly.
 
+### How it works
+
+GitHub Pages never talks to the clock. It only delivers the page's code to the phone; after that, the phone talks to the clock directly over Bluetooth.
+
+- **GitHub Pages** is free static hosting built into GitHub. When `web/index.html` changes on `main`, the *Deploy CLK sync page* workflow copies it to GitHub's web servers, which serve it at `https://b-ak.github.io/fluffy-engine/clk/`. Nothing runs on GitHub's side, and it never learns that a clock exists.
+- **Chrome on the phone** downloads that one HTML file and runs its JavaScript, which is where the logic lives. Browsers only allow Bluetooth access (the Web Bluetooth API) from secure https pages, which is why the page is hosted on Pages rather than opened from a local file.
+- **The time source is the phone's own clock**, read with JavaScript's `new Date()`. The phone keeps it accurate itself, from the mobile network or internet time servers. The page doesn't fetch the time from anywhere; it copies the phone's.
+- **The AT-09 module** doesn't interpret anything. It is a transparent bridge: bytes the phone writes to its FFE1 characteristic come out of its TXD pin as plain serial data, and bytes going into its RXD pin go back to the phone as a Bluetooth notification. To the Nano it looks like a serial cable.
+- **The Nano** reads those bytes on D8, checks the command (`T20261127163600`), writes the time into the DS3231 over I2C, reads it back, and replies `OK …` through D10 and the divider.
+- **The DS3231** does the actual timekeeping. The Nano never keeps time itself: on every pass through `loop()` it reads the time from the RTC and shows it. The coin cell keeps the RTC running through power cuts, which is why the time survives an unplug.
+
+```mermaid
+sequenceDiagram
+    participant GH as GitHub Pages (https)
+    participant P as Phone (Chrome page)
+    participant M as AT-09 (BLE to UART)
+    participant N as Nano (firmware)
+    participant R as DS3231 (RTC + coin cell)
+
+    Note over GH,P: 1. Once, when the page opens
+    P->>GH: GET /fluffy-engine/clk/
+    GH-->>P: index.html (page + JavaScript)
+
+    Note over P,R: 2. Tap "Sync clock to this time" (no internet needed)
+    P->>P: Read phone clock, wait for the next second
+    P->>M: BLE write to FFE1: T20261127163600
+    M->>N: UART bytes on D8
+    N->>R: I2C: set date and time
+    N->>R: I2C: read time back
+    R-->>N: 2026-11-27 16:36:00
+    N-->>M: OK 2026-11-27 16:36:00 on D10 (via divider)
+    M-->>P: BLE notification
+    Note over P: Shows "Clock set to ..."
+
+    Note over N,R: 3. Every loop, forever (about every 15 ms)
+    loop Display loop
+        N->>R: I2C: read time
+        R-->>N: hh:mm:ss
+        N->>N: Drive the 7-segment digits
+    end
+```
+
+Details the diagram compresses:
+
+- **GitHub only appears in step 1.** Once the page is open, the sync goes phone, Bluetooth, clock, and never touches the internet. Reopening the page later needs internet again, unless Chrome serves it from its cache.
+- **The page waits for the start of the next second before sending**, so the clock starts that second in step with the phone. That's why **Check clock time** agrees to within a second.
+- **The `OK` reply is a round trip, not an echo.** The Nano reads the time back from the DS3231 before replying, so "Clock set to …" confirms what the RTC actually holds, not just that bytes arrived.
+- **Replies reach the page as Bluetooth notifications** on the FFE1 characteristic, which the page subscribes to. **Check clock time** works the same way: the page sends `?` and the Nano replies `NOW …`.
+
 ### Sketches
 
 | Sketch | Use |
