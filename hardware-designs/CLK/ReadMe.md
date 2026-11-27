@@ -91,11 +91,14 @@ With two clocks, give each module its own name so they can be told apart in the 
 
 1. Flash `code/ble_at_passthrough/` to the Nano. The first hour digit flickers while it runs; that's expected.
 2. Open the Serial Monitor at **9600 baud**. Make sure no phone is connected to the module (AT commands only work while it is disconnected).
-3. Type `AT` and send. The module should reply `OK`. If nothing comes back, change the line ending setting: AT-09 / MLT-BT05 clones usually need **Both NL & CR**, a genuine HM-10 usually needs **No line ending**.
-4. Send `AT+NAMECLK-Hall` (or `CLK-Bedroom`, up to 12 characters), then `AT+RESET`.
-5. Flash `code/seven_segment_mux_clock_ble/` back to the Nano.
+3. Type `AT` and send. The module should reply `OK`. If it replies `ERROR` or nothing, change the line ending setting: AT-09 / MLT-BT05 clones usually need **Both NL & CR**, a genuine HM-10 usually needs **No line ending**. An `ERROR` reply still means the wiring is fine; only the line ending is wrong.
+4. Send `AT+NAMECLK-Hall` (or `CLK-Bedroom`, up to 12 characters). `AT+NAME` reads the name back.
+5. Unplug the power for a few seconds so the module restarts with the new name. On some clones `AT+RESET` leaves the module silent (LED off, not advertising) until it is power-cycled, so a power cycle is the reliable way. Pressing the Nano's reset button doesn't restart the module.
+6. Flash `code/seven_segment_mux_clock_ble/` back to the Nano.
 
 Leave the baud rate and the service/characteristic UUIDs at their defaults (9600, FFE0/FFE1); the sketch and the page expect them.
+
+Tested module: Robu AT-09 (ZS-040 carrier, CC2541), firmware `+VERSION=v6.1`. Needs **Both NL & CR**; `AT+RESET` needs a power cycle afterwards.
 
 ### Protocol
 
